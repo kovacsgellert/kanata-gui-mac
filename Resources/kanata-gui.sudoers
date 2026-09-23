@@ -1,0 +1,9 @@
+# kanata-gui-mac passwordless control.
+# Installed to /etc/sudoers.d/kanata-gui (mode 0440, validated with visudo).
+# Narrow: the GUI user may ONLY manage the kanata LaunchDaemon and run the
+# profile-switch helper — no blanket NOPASSWD sudo.
+%admin ALL=(root) NOPASSWD: /bin/launchctl kickstart\ -k\ system/dev.kanata.gui.kanata
+%admin ALL=(root) NOPASSWD: /bin/launchctl kickstart\ system/dev.kanata.gui.kanata
+%admin ALL=(root) NOPASSWD: /bin/launchctl bootout\ system/dev.kanata.gui.kanata
+%admin ALL=(root) NOPASSWD: /bin/launchctl print\ system/dev.kanata.gui.kanata
+%admin ALL=(root) NOPASSWD: /bin/sh /usr/local/libexec/kanata-gui/switch-profile.sh *

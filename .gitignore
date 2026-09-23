@@ -1,0 +1,18 @@
+# Swift / Xcode
+.build/
+*.o
+*.d
+DerivedData/
+*.xcuserdata/
+*.xcuserstate
+xcuserdata/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Kanata local state (not profiles)
+/Library/Logs/Kanata/
+kanata.out.log
+kanata.err.log

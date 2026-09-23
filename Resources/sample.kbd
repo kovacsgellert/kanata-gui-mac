@@ -1,0 +1,4 @@
+;; Minimal starter profile copied to ~/Library/Application Support/kanata-gui/profiles/
+(defcfg process-unmapped-keys yes)
+(defsrc caps)
+(deflayer base esc)

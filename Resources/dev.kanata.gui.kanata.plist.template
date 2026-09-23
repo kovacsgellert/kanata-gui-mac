@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>dev.kanata.gui.kanata</string>
+    <!-- __KANATA_BIN__ and __KANATA_CFG__ are substituted by Scripts/install.sh
+         and rewritten by Scripts/switch-profile.sh on profile switch. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>__KANATA_BIN__</string>
+        <string>-c</string>
+        <string>__KANATA_CFG__</string>
+        <string>--port</string>
+        <string>__KANATA_PORT__</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Library/Logs/Kanata/kanata.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Library/Logs/Kanata/kanata.err.log</string>
+</dict>
+</plist>
