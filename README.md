@@ -13,6 +13,13 @@ after a one-time setup. See [Docs/ARCHITECTURE.md](Docs/ARCHITECTURE.md) for the
 - `Scripts/` — `install.sh`, `switch-profile.sh`, `uninstall.sh`
 - `Docs/ARCHITECTURE.md` — full design + security notes
 
+## Install
+
+```sh
+brew tap kovacsgellert/tap
+brew install --cask kanata-gui
+```
+
 ## Quick start (dev)
 
 ```sh
