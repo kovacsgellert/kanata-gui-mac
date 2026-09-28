@@ -65,6 +65,4 @@ the installer tries both.
 
 ## Future work
 
-TCP layer-status in the menu icon (kanata-tray shows per-layer icons via kanata's TCP feed —
-subscribe to `{"LayerChange":…}` on `--port`); `SMJobBless` migration; signed `.pkg`/`.dmg`
-distribution; Sparkle updates.
+See [ROADMAP.md](ROADMAP.md).
