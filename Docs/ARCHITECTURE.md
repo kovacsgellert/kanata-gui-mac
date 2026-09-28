@@ -41,19 +41,27 @@ kickstart -k`. Start/stop = `launchctl kickstart/bootout` via the same sudoers g
 
 ## Permissions checklist (manual, Apple-mandated)
 
+Per kanata's `docs/setup-macos.md`: nothing in Privacy & Security is granted
+to Karabiner — the driver is approved via its Driver Extension entry, while
+BOTH privacy grants go to the kanata binary itself (at its exact path,
+e.g. `/opt/homebrew/bin/kanata` for Homebrew installs):
+
 1. Driver extension: System Settings → General → Login Items & Extensions → Driver Extensions →
    enable `org.pqrs.Karabiner-DriverKit-VirtualHIDDevice` (reboot if toggled after `deactivate`).
-2. Input Monitoring: add `/usr/local/bin/kanata`.
-3. Accessibility: add `/usr/local/bin/kanata` (run `kanata --macos-request-permissions` to prompt).
-4. Reinstalling kanata in place can invalidate TCC entries — toggle off/on again.
+2. Input Monitoring: add the kanata binary (`+`, press ⇧⌘G to paste a Homebrew path).
+3. Accessibility: add the kanata binary (or run `kanata --macos-request-permissions` to prompt).
+4. Reinstalling/upgrading kanata in place (incl. `brew upgrade kanata`) can invalidate TCC entries — toggle off/on again.
 
 ## Version pairing
 
-- kanata ≥ v1.13 ↔ driver v8.0.0 (protocol 7).
-- kanata < v1.13 ↔ driver v6.2.0 (protocol 5).
+- kanata ≤ v1.12 ↔ driver v6.2.0 (protocol 5). This is the current default
+  (`--kanata-version v1.12.0 --driver-version v6.2.0`); the installer aborts on
+  a mismatched pair instead of installing a setup that can never connect.
+- kanata ≥ v1.13 ↔ driver v8.0.0 (protocol 7, breaking IPC change).
 Mismatch symptom: `connect_failed asio.system:2` loop or `Karabiner-VirtualHIDDevice driver is
-not activated`. The installer defaults to the new pair and accepts `--kanata-version` /
-`--driver-version` overrides.
+not activated`. Note kanata's per-release asset names change shape (older: 
+`kanata-macos-binaries-<arch>-<version>.zip`, newer: `macos-binaries-<arch>.zip`) —
+the installer tries both.
 
 ## Future work
 

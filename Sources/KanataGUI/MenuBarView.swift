@@ -1,76 +1,93 @@
 import SwiftUI
 
+/// Control-Center-style panel (like the Wi-Fi dropdown): real switch at the
+/// top, profile list, footer actions. Shown via `.menuBarExtraStyle(.window)`,
+/// which is what allows an actual Toggle switch — menu-style extras only
+/// render checkmarks.
 struct MenuBarView: View {
     @ObservedObject var store: ProfileStore
     @ObservedObject var service: KanataService
+    @ObservedObject var settings: AppSettings
 
     var body: some View {
-        Group {
-            statusSection
-            Divider()
-            profilesSection
-            Divider()
-            controlSection
-            Divider()
-            footerSection
-        }
-    }
-
-    private var statusSection: some View {
-        Group {
-            switch service.status {
-            case .unknown:
-                Text("Kanata: checking…")
-            case .stopped:
-                Text("Kanata: stopped")
-            case .running:
-                Text("Kanata: running\(store.activeProfileName.map { " (\($0))" } ?? "")")
-            case .error(let msg):
-                Text("Kanata error")
-                Text(msg).font(.caption).foregroundStyle(.red).lineLimit(4)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Kanata").font(.headline)
+                Spacer()
+                Toggle("", isOn: service.enabledBinding(store: store, settings: settings))
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+                    .disabled(toggleDisabled)
             }
-        }
-    }
+            Divider()
 
-    private var profilesSection: some View {
-        Group {
-            Text("Profiles").font(.caption).foregroundStyle(.secondary)
+            Text("Profiles")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             if store.profiles.isEmpty {
-                Text("No .kbd profiles yet — use Settings to import one.")
+                Text("No .kbd profiles found — add some to ~/.config/kanata or import via Settings.")
                     .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             ForEach(store.profiles) { profile in
                 Button {
                     store.activeProfileName = profile.name
                     store.save()
-                    _ = service.switchTo(profile: profile)
+                    // Preserve on/off state: picking a profile while Off only
+                    // changes the selection; while On it switches live.
+                    let ok = service.switchTo(profile: profile)
+                    if ok, service.isRunning {
+                        settings.kanataEnabled = true
+                    }
                 } label: {
                     HStack {
-                        Text(profile.name)
                         if profile.name == store.activeProfileName {
                             Image(systemName: "checkmark")
+                        } else {
+                            Image(systemName: "checkmark").opacity(0)
                         }
+                        Text(profile.name)
+                        Spacer()
                     }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .padding(.vertical, 2)
             }
-        }
-    }
 
-    private var controlSection: some View {
-        Group {
-            Button("Start kanata") { _ = service.start() }
-            Button("Stop kanata") { _ = service.stop() }
+            Divider()
+
             Button("Refresh status") { service.refresh() }
+                .buttonStyle(.plain)
+            SettingsLink { Text("Settings…") }
+                .buttonStyle(.plain)
+            Button {
+                NSApplication.shared.terminate(nil)
+            } label: {
+                HStack {
+                    Text("Quit")
+                    Spacer()
+                    Text("⌘Q")
+                        .foregroundStyle(.secondary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .keyboardShortcut("q", modifiers: .command)
+
             if let err = service.lastError, !err.isEmpty {
                 Text(err).font(.caption).foregroundStyle(.red).lineLimit(5)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .padding(14)
+        .frame(width: 300)
     }
 
-    private var footerSection: some View {
-        Group {
-            SettingsLink { Text("Settings…") }
-            Button("Quit") { NSApplication.shared.terminate(nil) }
-        }
+    // MARK: - Toggle
+
+    private var toggleDisabled: Bool {
+        if case .unknown = service.status { return true }
+        return false
     }
 }

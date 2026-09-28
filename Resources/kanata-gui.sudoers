@@ -5,5 +5,6 @@
 %admin ALL=(root) NOPASSWD: /bin/launchctl kickstart\ -k\ system/dev.kanata.gui.kanata
 %admin ALL=(root) NOPASSWD: /bin/launchctl kickstart\ system/dev.kanata.gui.kanata
 %admin ALL=(root) NOPASSWD: /bin/launchctl bootout\ system/dev.kanata.gui.kanata
+%admin ALL=(root) NOPASSWD: /bin/launchctl bootstrap\ system\ /Library/LaunchDaemons/dev.kanata.gui.kanata.plist
 %admin ALL=(root) NOPASSWD: /bin/launchctl print\ system/dev.kanata.gui.kanata
 %admin ALL=(root) NOPASSWD: /bin/sh /usr/local/libexec/kanata-gui/switch-profile.sh *

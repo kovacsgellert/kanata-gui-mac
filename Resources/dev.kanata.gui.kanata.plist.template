@@ -15,9 +15,12 @@
         <string>__KANATA_PORT__</string>
     </array>
     <key>RunAtLoad</key>
-    <true/>
+    <false/>
     <key>KeepAlive</key>
-    <true/>
+    <false/>
+    <!-- Default is INACTIVE: kanata only runs after the user flips the On
+         toggle in the menu-bar app, which rewrites RunAtLoad/KeepAlive to
+         true via Scripts/switch-profile.sh. -->
     <key>StandardOutPath</key>
     <string>/Library/Logs/Kanata/kanata.out.log</string>
     <key>StandardErrorPath</key>

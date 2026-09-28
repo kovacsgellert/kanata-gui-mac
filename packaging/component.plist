@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+  <dict>
+    <key>RootRelativeBundlePath</key>
+    <string>Applications/KanataGUI.app</string>
+    <!-- Never "upgrade in place" a stray copy elsewhere on disk (e.g. a
+         dev checkout): always install exactly to --install-location. -->
+    <key>BundleIsRelocatable</key>
+    <false/>
+  </dict>
+</array>
+</plist>

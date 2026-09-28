@@ -13,6 +13,7 @@ final class PrivilegedInstaller: ObservableObject {
     func locateInstallScript() -> String? {
         let candidates: [String?] = [
             Bundle.main.url(forResource: "install", withExtension: "sh")?.path,
+            Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/Scripts/install.sh").path,
             Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/install.sh").path,
             "./Scripts/install.sh",
             "Scripts/install.sh",
@@ -20,7 +21,7 @@ final class PrivilegedInstaller: ObservableObject {
         return candidates.compactMap { $0 }.first { FileManager.default.fileExists(atPath: $0) }
     }
 
-    func runInstaller(kanataVersion: String = "v1.10.1", driverVersion: String = "v8.0.0") {
+    func runInstaller(kanataVersion: String = "v1.12.0", driverVersion: String = "v6.2.0") {
         guard let script = locateInstallScript() else {
             log += "install.sh not found. Run from the repo root.\n"
             return
@@ -52,17 +53,33 @@ final class PrivilegedInstaller: ObservableObject {
         }
     }
 
+    /// Locate the kanata binary (same order as the installer + KanataConstants).
+    static func locateKanata() -> String? {
+        let fm = FileManager.default
+        for p in ["/usr/local/bin/kanata", "/opt/homebrew/bin/kanata"] where fm.isExecutableFile(atPath: p) {
+            return p
+        }
+        let found = Shell.run(["sh", "-c", "command -v kanata"]).out
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if !found.isEmpty, fm.isExecutableFile(atPath: found) {
+            return found
+        }
+        return nil
+    }
+
     /// Non-privileged preflight checks shown in the installer wizard.
     static func preflight() -> [(name: String, ok: Bool, hint: String)] {
         let fm = FileManager.default
-        let kanata = fm.fileExists(atPath: KanataConstants.kanataBinaryPath)
+        let kanataPath = locateKanata()
+        let kanata = kanataPath != nil
         let daemon = fm.fileExists(atPath: KanataConstants.daemonPlistPath)
         let sudoers = fm.fileExists(atPath: "/etc/sudoers.d/kanata-gui")
         let vhid = fm.fileExists(atPath: "/Applications/.Karabiner-VirtualHIDDevice-Manager.app")
+            || fm.fileExists(atPath: "/Applications/Karabiner-Elements.app")
         return [
-            ("kanata binary (\(KanataConstants.kanataBinaryPath))", kanata, kanata ? "found" : "will be downloaded from GitHub releases"),
+            ("kanata binary" + (kanataPath.map { " (\($0))" } ?? ""), kanata, kanata ? "found" : "installer will add it via Homebrew (pinned versions via GitHub releases)"),
             ("Karabiner VirtualHIDDevice driver", vhid, vhid ? "found" : "installer will download driver pkg v8.0.0 — you approve the system extension"),
-            ("LaunchDaemon (\(KanataConstants.daemonLabel))", daemon, daemon ? "installed, starts at boot as root" : "installer will create it (starts kanata at boot, no password)"),
+            ("LaunchDaemon (\(KanataConstants.daemonLabel))", daemon, daemon ? "installed, stays off until the menu-bar On toggle" : "installer will create it (inactive by default, On toggle starts it, no password)"),
             ("Passwordless control (/etc/sudoers.d/kanata-gui)", sudoers, sudoers ? "installed" : "installer adds NOPASSWD for launchctl kickstart/bootout + switch script only"),
         ]
     }

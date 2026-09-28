@@ -47,5 +47,5 @@ Then open the menu-bar icon → Settings → import `.kbd` profiles, click one t
 ## Requirements
 
 - macOS 14+, Apple Silicon or Intel
-- kanata ≥ v1.13 + Karabiner-DriverKit-VirtualHIDDevice v8.0.0 (protocol 7; older v6.2.0 pairs
-  with kanata < v1.13 — see `Docs/ARCHITECTURE.md`)
+- kanata v1.12.0 + Karabiner-DriverKit-VirtualHIDDevice v6.2.0 (verified protocol-5 pair;
+  kanata ≥ v1.13 will need driver v8.0.0 — see `Docs/ARCHITECTURE.md`)
