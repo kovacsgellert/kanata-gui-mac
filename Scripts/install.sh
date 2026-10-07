@@ -55,6 +55,10 @@ SUDOERS_SRC="$REPO_ROOT/Resources/kanata-gui.sudoers"
 SUDOERS_DST="/etc/sudoers.d/kanata-gui"
 VHID_MANAGER="/Applications/.Karabiner-VirtualHIDDevice-Manager.app"
 VHID_EXT="org.pqrs.Karabiner-DriverKit-VirtualHIDDevice"
+VHID_DAEMON_APP="/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice/Applications/Karabiner-VirtualHIDDevice-Daemon.app"
+VHID_PLIST="/Library/LaunchDaemons/org.pqrs.Karabiner-VirtualHIDDevice-Daemon.plist"
+KE_APP="/Applications/Karabiner-Elements.app"
+KE_VHID_SERVICE="system/org.pqrs.service.daemon.Karabiner-VirtualHIDDevice-Daemon"
 
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
@@ -85,6 +89,45 @@ if [ "$DMAJ" -ne "$NEED_MAJOR" ]; then
   echo "but driver $DRIVER_VERSION was requested. Pass a matching pair, e.g." >&2
   echo "  --kanata-version v1.12.0 --driver-version v6.2.0" >&2
   exit 1
+fi
+
+# Version of an already-installed driver, from its daemon bundle (present for
+# both the standalone pkg and Karabiner-Elements), else the pkg receipt.
+# Empty when no driver is installed.
+installed_driver_version() {
+  v=""
+  # PlistBuddy prints "File Doesn't Exist" on stdout, so only ask when it exists.
+  if [ -f "$VHID_DAEMON_APP/Contents/Info.plist" ]; then
+    v="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' \
+      "$VHID_DAEMON_APP/Contents/Info.plist" 2>/dev/null || true)"
+  fi
+  if [ -z "$v" ]; then
+    v="$(/usr/sbin/pkgutil --pkg-info "$VHID_EXT" 2>/dev/null | sed -n 's/^version: //p')"
+  fi
+  echo "$v"
+}
+
+# The same check against an already-installed driver. Karabiner-Elements
+# bundles its own (currently v8) driver, so an existing KE install is the
+# usual source of a mismatch: setup "succeeds" but kanata only logs
+# "connect_failed asio.system:2" forever. Abort before changing anything.
+HAVE_DRIVER="$(installed_driver_version)"
+if [ -n "$HAVE_DRIVER" ]; then
+  # shellcheck disable=SC2046
+  set -- $(split_ver "$HAVE_DRIVER")
+  if [ "$1" -ne "$NEED_MAJOR" ]; then
+    echo "ERROR: Karabiner driver v$HAVE_DRIVER is installed, but kanata $KANATA_VERSION" >&2
+    echo "requires driver v${NEED_MAJOR}.x; kanata would never connect to it." >&2
+    if [ -d "$KE_APP" ]; then
+      echo "That driver ships with Karabiner-Elements, which also grabs the keyboard" >&2
+      echo "itself and conflicts with kanata. Uninstall it, reboot, then re-run:" >&2
+      echo "  brew uninstall --cask karabiner-elements" >&2
+    else
+      echo "Deactivate it, reboot, then re-run this installer:" >&2
+      echo "  sudo '$VHID_MANAGER/Contents/MacOS/Karabiner-VirtualHIDDevice-Manager' deactivate" >&2
+    fi
+    exit 1
+  fi
 fi
 
 find_existing_kanata() {
@@ -199,13 +242,14 @@ else
 fi
 "$KANATA_BIN" --macos-request-permissions || true
 
-# 2. Karabiner driver -- never reinstall when a driver provider is present.
+# 2. Karabiner driver -- never reinstall when a driver provider is present
+# (its version was already checked against kanata in step 0).
 # There is no Homebrew formula for the standalone
 # Karabiner-DriverKit-VirtualHIDDevice pkg, so it is fetched from GitHub
 # releases below; but an existing Karabiner-Elements install (app or brew
 # cask, which bundles and manages the same driver) also satisfies this.
 has_driver_provider() {
-  if [ -d "$VHID_MANAGER" ] || [ -d "/Applications/Karabiner-Elements.app" ]; then
+  if [ -d "$VHID_MANAGER" ] || [ -d "$KE_APP" ]; then
     return 0
   fi
   if BREW_CASK="$(find_brew)" \
@@ -214,15 +258,22 @@ has_driver_provider() {
   fi
   return 1
 }
-if ! has_driver_provider; then
+if [ -n "$HAVE_DRIVER" ]; then
+  echo "==> keeping existing Karabiner driver v$HAVE_DRIVER (matches kanata $KANATA_VERSION)"
+elif has_driver_provider; then
+  echo "==> keeping existing Karabiner driver (standalone manager or Karabiner-Elements present; not touching it)"
+  echo "    (version unknown; ensure it is v${NEED_MAJOR}.x to match kanata $KANATA_VERSION)"
+else
   echo "==> downloading Karabiner-DriverKit-VirtualHIDDevice $DRIVER_VERSION"
+  # Release tags carry a "v" prefix, the pkg file names do not.
   /usr/bin/curl -fL --max-time 180 -o "$WORK/driver.pkg" \
-    "https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases/download/$DRIVER_VERSION/Karabiner-DriverKit-VirtualHIDDevice-$DRIVER_VERSION.pkg"
+    "https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases/download/$DRIVER_VERSION/Karabiner-DriverKit-VirtualHIDDevice-${DRIVER_VERSION#v}.pkg"
   /usr/sbin/installer -pkg "$WORK/driver.pkg" -target /
   echo "NOTE: approve the driver in System Settings > General > Login Items & Extensions > Driver Extensions."
-else
-  echo "==> keeping existing Karabiner driver (standalone manager or Karabiner-Elements present; not touching it)"
-  echo "    (ensure it is v${NEED_MAJOR}.x to match kanata $KANATA_VERSION)"
+fi
+if [ -d "$KE_APP" ]; then
+  echo "WARNING: Karabiner-Elements is installed. Its Karabiner-Core-Service grabs the" >&2
+  echo "keyboard too and conflicts with kanata; quit or uninstall it before turning kanata On." >&2
 fi
 if command -v systemextensionsctl >/dev/null 2>&1 \
   && systemextensionsctl list 2>/dev/null | grep -q "$VHID_EXT.*activated.*enabled"; then
@@ -232,23 +283,36 @@ elif [ -x "$VHID_MANAGER/Contents/MacOS/Karabiner-VirtualHIDDevice-Manager" ]; t
 else
   echo "==> standalone VHID manager absent (Karabiner-Elements manages the driver); skipping forceActivate"
 fi
-# Persist the VHID daemon at boot (standalone-driver case; harmless when
-# Karabiner-Elements already manages it). Never overwrite an existing plist.
-if [ ! -f /Library/LaunchDaemons/org.pqrs.Karabiner-VirtualHIDDevice-Daemon.plist ]; then
+# Persist the VHID daemon at boot (standalone-driver case only). When
+# Karabiner-Elements already runs the daemon, a second copy would fight it
+# over the same socket, so skip ours and remove one a previous run left
+# behind (only if it is unmodified). Never overwrite an existing plist.
+if [ -d "$KE_APP" ] || /bin/launchctl print "$KE_VHID_SERVICE" >/dev/null 2>&1; then
+  if [ -f "$VHID_PLIST" ] && cmp -s "$REPO_ROOT/Resources/karabiner-vhid-daemon.plist" "$VHID_PLIST"; then
+    /bin/launchctl bootout "system/org.pqrs.Karabiner-VirtualHIDDevice-Daemon" 2>/dev/null || true
+    rm -f "$VHID_PLIST"
+    echo "==> removed duplicate VHID daemon plist (Karabiner-Elements runs the daemon)"
+  else
+    echo "==> Karabiner-Elements runs the VHID daemon, not installing our own"
+  fi
+elif [ ! -f "$VHID_PLIST" ]; then
   if [ -f "$REPO_ROOT/Resources/karabiner-vhid-daemon.plist" ]; then
-    cp "$REPO_ROOT/Resources/karabiner-vhid-daemon.plist" /Library/LaunchDaemons/org.pqrs.Karabiner-VirtualHIDDevice-Daemon.plist
-    chown root:wheel /Library/LaunchDaemons/org.pqrs.Karabiner-VirtualHIDDevice-Daemon.plist
-    /bin/launchctl bootstrap system /Library/LaunchDaemons/org.pqrs.Karabiner-VirtualHIDDevice-Daemon.plist || true
+    cp -X "$REPO_ROOT/Resources/karabiner-vhid-daemon.plist" "$VHID_PLIST"
+    chown root:wheel "$VHID_PLIST"
+    /bin/launchctl bootstrap system "$VHID_PLIST" || true
   fi
 else
   echo "==> VHID daemon plist already installed, leaving it alone"
+  # Older installers cp'd it with the app bundle's quarantine xattr, which
+  # makes launchd refuse it ("error = 155"); clearing it is always safe.
+  xattr -d com.apple.quarantine "$VHID_PLIST" 2>/dev/null || true
 fi
 
 # 3. App dirs + starter profile (only when the user has no .kbd anywhere yet).
 sudo -u "$CONSOLE_USER" mkdir -p "$PROFILES"
 has_kbd() { for f in "$PROFILES"/*.kbd; do [ -e "$f" ] && return 0; done; return 1; }
 if ! has_kbd; then
-  cp "$REPO_ROOT/Resources/sample.kbd" "$PROFILES/starter.kbd"
+  cp -X "$REPO_ROOT/Resources/sample.kbd" "$PROFILES/starter.kbd"
   chown "$CONSOLE_USER" "$PROFILES/starter.kbd"
   echo "==> installed starter profile"
 else
@@ -263,7 +327,7 @@ if [ -z "$FIRST_CFG" ]; then echo "ERROR: no .kbd profile available" >&2; exit 1
 
 # 4. Helper scripts + sudoers. Back up a differing sudoers drop-in first.
 mkdir -p "$LIBEXEC"
-cp "$SCRIPT_DIR/switch-profile.sh" "$LIBEXEC/switch-profile.sh"
+cp -X "$SCRIPT_DIR/switch-profile.sh" "$LIBEXEC/switch-profile.sh"
 chmod 755 "$LIBEXEC/switch-profile.sh"
 /usr/sbin/visudo -c -f "$SUDOERS_SRC"
 if [ -f "$SUDOERS_DST" ] && ! cmp -s "$SUDOERS_SRC" "$SUDOERS_DST"; then
@@ -271,7 +335,7 @@ if [ -f "$SUDOERS_DST" ] && ! cmp -s "$SUDOERS_SRC" "$SUDOERS_DST"; then
   cp -p "$SUDOERS_DST" "$BACKUP"
   echo "==> backed up existing sudoers drop-in to $BACKUP"
 fi
-cp "$SUDOERS_SRC" "$SUDOERS_DST"
+cp -X "$SUDOERS_SRC" "$SUDOERS_DST"
 chmod 0440 "$SUDOERS_DST"
 /usr/sbin/visudo -c -f "$SUDOERS_DST"
 

@@ -67,6 +67,13 @@ final class PrivilegedInstaller: ObservableObject {
         return nil
     }
 
+    /// Installed Karabiner VirtualHIDDevice driver version (same source as install.sh).
+    static func installedDriverVersion() -> String? {
+        let info = URL(fileURLWithPath: "/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice/Applications/Karabiner-VirtualHIDDevice-Daemon.app/Contents/Info.plist")
+        guard let dict = NSDictionary(contentsOf: info) else { return nil }
+        return dict["CFBundleShortVersionString"] as? String
+    }
+
     /// Non-privileged preflight checks shown in the installer wizard.
     static func preflight() -> [(name: String, ok: Bool, hint: String)] {
         let fm = FileManager.default
@@ -74,11 +81,24 @@ final class PrivilegedInstaller: ObservableObject {
         let kanata = kanataPath != nil
         let daemon = fm.fileExists(atPath: KanataConstants.daemonPlistPath)
         let sudoers = fm.fileExists(atPath: "/etc/sudoers.d/kanata-gui")
-        let vhid = fm.fileExists(atPath: "/Applications/.Karabiner-VirtualHIDDevice-Manager.app")
+        let vhidPresent = fm.fileExists(atPath: "/Applications/.Karabiner-VirtualHIDDevice-Manager.app")
             || fm.fileExists(atPath: "/Applications/Karabiner-Elements.app")
+        // kanata v1.12 speaks driver protocol 5, which only the v6 driver serves;
+        // Karabiner-Elements bundles a newer (v8) one.
+        let driverVersion = installedDriverVersion()
+        let driverMatches = driverVersion.map { $0.hasPrefix("6.") } ?? true
+        let vhid = vhidPresent && driverMatches
+        let vhidHint: String
+        if !vhidPresent {
+            vhidHint = "installer will download driver pkg v6.2.0 — you approve the system extension"
+        } else if let v = driverVersion, !driverMatches {
+            vhidHint = "v\(v) installed, kanata needs v6.x — uninstall Karabiner-Elements / deactivate it first"
+        } else {
+            vhidHint = "found" + (driverVersion.map { " (v\($0))" } ?? "")
+        }
         return [
             ("kanata binary" + (kanataPath.map { " (\($0))" } ?? ""), kanata, kanata ? "found" : "installer will add it via Homebrew (pinned versions via GitHub releases)"),
-            ("Karabiner VirtualHIDDevice driver", vhid, vhid ? "found" : "installer will download driver pkg v8.0.0 — you approve the system extension"),
+            ("Karabiner VirtualHIDDevice driver", vhid, vhidHint),
             ("LaunchDaemon (\(KanataConstants.daemonLabel))", daemon, daemon ? "installed, stays off until the menu-bar On toggle" : "installer will create it (inactive by default, On toggle starts it, no password)"),
             ("Passwordless control (/etc/sudoers.d/kanata-gui)", sudoers, sudoers ? "installed" : "installer adds NOPASSWD for launchctl kickstart/bootout + switch script only"),
         ]
