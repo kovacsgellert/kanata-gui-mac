@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.1
 
 - Installer aborts up front when the installed Karabiner driver (e.g. the v8
   bundled with Karabiner-Elements) doesn't match kanata, instead of finishing
