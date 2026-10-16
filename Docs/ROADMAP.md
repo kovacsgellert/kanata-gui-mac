@@ -11,8 +11,9 @@ Needs a small TCP client with reconnect handling.
 
 ## Signed + notarized distribution
 
-0.1.0 ships unsigned `.pkg`/`.dmg` (ad-hoc seal only), so first launch needs
-right-click → Open. Remaining: paid Apple Developer ID signing + notarization.
+Releases are signed with a self-signed certificate (stable identity across
+updates) but not notarized, so first launch needs Open Anyway / right-click →
+Open. Remaining: paid Apple Developer ID signing + notarization.
 
 ## SMJobBless privileged helper
 

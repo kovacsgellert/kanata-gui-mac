@@ -1,6 +1,6 @@
 #!/bin/bash
 # Build an installer .pkg that puts KanataGUI.app into /Applications.
-# Unsigned (no paid Developer ID): on first run, right-click → Open.
+# Installer itself is unsigned (no paid Developer ID); see README for first launch.
 # Usage: [VERSION=0.1.0] ./scripts/make-pkg.sh   (run package-app.sh first)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

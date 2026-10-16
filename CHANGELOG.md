@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Releases are signed with a stable self-signed certificate (shared with the
+  author's other apps) instead of ad-hoc, so macOS recognizes updates as the
+  same app; tag builds fail without the certificate
+- README: first-launch steps for macOS 15+ (Open Anyway), updating, releasing
+
 ## 0.1.1
 
 - Installer aborts up front when the installed Karabiner driver (e.g. the v8

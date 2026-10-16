@@ -20,6 +20,36 @@ brew tap kovacsgellert/tap
 brew install --cask kanata-gui
 ```
 
+Or download `kanata-gui-<version>-macos-arm64.dmg` (drag **KanataGUI** into **Applications**)
+or the `.pkg` from the [Releases page](https://github.com/kovacsgellert/kanata-gui-mac/releases).
+
+Neither is notarized, so Gatekeeper blocks the first launch. On macOS 15 (Sequoia) and later,
+try to open the app once, then go to `System Settings → Privacy & Security`, scroll down and
+click **Open Anyway**. On macOS 14, right-click the app and choose **Open** instead.
+
+### Updating
+
+Update with `brew upgrade --cask kanata-gui`, or by dragging the new version over the old one in
+Applications. The Input Monitoring and Accessibility permissions belong to the kanata binary, not
+to KanataGUI, so app updates never touch them. Releases from 0.1.2 on are signed with the same
+certificate, so macOS also recognizes each update as the same app. Coming from 0.1.1 or older,
+macOS treats the update as a new app once: if **Start KanataGUI at login** stops working, toggle
+it off and on again in Settings → General.
+
+### Releasing
+
+Pushing a version tag like `0.1.0` triggers the `Release` workflow, which packages the `.app`,
+builds the DMG and PKG, and attaches them to the GitHub Release.
+
+Releases are signed with a self-signed certificate (no paid Apple Developer ID), stored in the
+`SIGNING_P12_BASE64` and `SIGNING_P12_PASSWORD` repository secrets; the workflow refuses to
+publish a release without it. A stable signature lets macOS recognize updates as the same app;
+ad-hoc signatures change with every build. The certificate is shared by all of the author's Mac
+apps (macOS keys permissions on bundle id + certificate, so apps stay separate); it was created
+once with `Scripts/make-signing-cert.sh` into `~/.codesign/`. Keep its `.p12` and password backed
+up: a new certificate makes every update look like a different app again. To sign a local build
+the same way, run `SIGNING_P12=<path> SIGNING_P12_PASSWORD=<password> ./Scripts/package-app.sh`.
+
 ## Quick start (dev)
 
 ```sh
