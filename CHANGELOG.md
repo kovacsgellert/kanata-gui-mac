@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.2
 
 - Releases are signed with a stable self-signed certificate (shared with the
   author's other apps) instead of ad-hoc, so macOS recognizes updates as the
