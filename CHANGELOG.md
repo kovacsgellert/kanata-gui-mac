@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.3
 
 - Menu-bar icon reflects kanata's real state right after launch/login: the
   daemon is queried as part of app launch instead of only when the menu is
