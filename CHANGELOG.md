@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- Menu-bar icon reflects kanata's real state right after launch/login: the
+  daemon is queried as part of app launch instead of only when the menu is
+  first opened, so after a reboot it no longer shows the "disabled" icon
+  while kanata is actually running (plus a delayed re-check for the boot
+  race, and the stored toggle is synced from the daemon at launch)
+- New menu-bar icons, drawn in code: the disabled icon is an outline keyboard
+  struck through with a slash (`keyboard` vs `keyboard.fill` were nearly
+  identical at 16px), and the error icon is a keyboard with a warning badge —
+  the old `keyboard.badge.exclamationmark` symbol does not exist on current
+  macOS and rendered a blank icon
+
 ## 0.1.2
 
 - Releases are signed with a stable self-signed certificate (shared with the

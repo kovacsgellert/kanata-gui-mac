@@ -82,6 +82,15 @@ struct MenuBarView: View {
         }
         .padding(14)
         .frame(width: 300)
+        .onAppear {
+            // Pick up .kbd files added or removed while the app was running.
+            store.rescan()
+            // Re-check the daemon: it may have been restarted, crashed or been
+            // switched off since the launch-time check.
+            service.refresh()
+            // Daemon state is source of truth; reflect it in the toggle.
+            settings.kanataEnabled = service.isRunning
+        }
     }
 
     // MARK: - Toggle
