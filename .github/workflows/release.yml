@@ -16,7 +16,10 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-14 # Apple Silicon; asset is named accordingly
+    # Apple Silicon; asset is named accordingly. Also pinned off macos-14,
+    # which is deprecated and whose default Xcode (15.4) is too old for
+    # `@Environment(\.openSettings)` used by the Settings window.
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
