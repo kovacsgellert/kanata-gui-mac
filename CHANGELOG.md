@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Settings opens in front of other windows instead of getting lost behind
+  them: the app is a menu-bar agent (`LSUIElement`), so macOS left it inactive
+  while the Settings window opened and the window was ordered behind the
+  frontmost app's windows — with no Dock icon there was no way to bring it
+  forward again. Opening Settings now activates the app (which keeps it out of
+  the Dock) and raises the window above every other app
+
 ## 0.1.3
 
 - Menu-bar icon reflects kanata's real state right after launch/login: the

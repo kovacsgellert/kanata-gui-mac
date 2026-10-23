@@ -8,6 +8,7 @@ struct MenuBarView: View {
     @ObservedObject var store: ProfileStore
     @ObservedObject var service: KanataService
     @ObservedObject var settings: AppSettings
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -59,8 +60,17 @@ struct MenuBarView: View {
 
             Button("Refresh status") { service.refresh() }
                 .buttonStyle(.plain)
-            SettingsLink { Text("Settings…") }
-                .buttonStyle(.plain)
+            // Not `SettingsLink`: opening Settings from a menu-bar agent leaves
+            // the app inactive, which parks the window behind other apps with no
+            // way to bring it forward. `openSettings()` lets us activate the app
+            // in the same breath (see SettingsWindowPresenter).
+            Button {
+                openSettings()
+                SettingsWindowPresenter.present()
+            } label: {
+                Text("Settings…")
+            }
+            .buttonStyle(.plain)
             Button {
                 NSApplication.shared.terminate(nil)
             } label: {

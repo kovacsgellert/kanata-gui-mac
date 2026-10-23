@@ -95,6 +95,11 @@ struct SettingsView: View {
             InstallerWizardView().tabItem { Label("Setup", systemImage: "wrench") }
         }
         .padding(16).frame(width: 600, height: 480)
+        // Belt and braces for the menu-bar panel's "Settings…": the window is
+        // created asynchronously after `openSettings()`, so the activation done
+        // there can land before it exists. Doing it again now that the window is
+        // on screen is what actually lifts it above other apps.
+        .onAppear { SettingsWindowPresenter.present() }
     }
 
     private var generalTab: some View {
