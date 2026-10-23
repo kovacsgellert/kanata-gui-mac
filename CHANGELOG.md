@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.4
 
 - Settings opens in front of other windows instead of getting lost behind
   them: the app is a menu-bar agent (`LSUIElement`), so macOS left it inactive
